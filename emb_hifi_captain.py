@@ -1,0 +1,49 @@
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import torch
+
+from resemblyzer import VoiceEncoder, preprocess_wav
+
+
+def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    encoder = VoiceEncoder(device=device)
+
+    df_path = Path(
+        "~/dataset/hi-fi-captain_cut_silence/ja-JP/data_split.csv"
+    ).expanduser()
+    audio_dir = Path("~/dataset/hi-fi-captain_cut_silence/ja-JP").expanduser()
+    save_dir = Path("~/dataset/hi-fi-captain_cut_silence/ja-JP/emb_fix").expanduser()
+
+    df = pd.read_csv(str(df_path))
+    df = df.loc[df["data_split"] == "train"]
+    speaker_list = list(df["speaker"].unique())
+    data_quantity = 100
+
+    for speaker in speaker_list:
+        data = df.loc[df["speaker"] == speaker].sample(n=data_quantity, random_state=42)
+        emb_list = []
+
+        for row in data.iterrows():
+            audio_path = (
+                audio_dir
+                / speaker
+                / "wav"
+                / row[1]["parent_dir"]
+                / f'{row[1]["filename"]}.wav'
+            )
+            wav = preprocess_wav(str(audio_path))
+            emb = encoder.embed_utterance(wav)
+            emb_list.append(emb)
+
+        emb = np.mean(np.array(emb_list), axis=0)
+
+        save_path = save_dir / speaker / "emb.npy"
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        np.save(str(save_path), emb)
+
+
+if __name__ == "__main__":
+    main()
