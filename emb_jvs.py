@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from tqdm import tqdm
 
 from resemblyzer import VoiceEncoder, preprocess_wav
 
@@ -13,6 +12,7 @@ debug = False
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     encoder = VoiceEncoder(device=device)
+    encoder.eval()
 
     df_path = Path("~/dataset/jvs_ver1_cut_silence/data_split_fix.csv").expanduser()
     audio_dir = Path("~/dataset/jvs_ver1_cut_silence").expanduser()
@@ -35,7 +35,8 @@ def main():
                 / f'{row[1]["filename"]}.wav'
             )
             wav = preprocess_wav(str(audio_path))
-            emb = encoder.embed_utterance(wav)
+            with torch.no_grad():
+                emb = encoder.embed_utterance(wav)
             emb_list.append(emb)
 
         emb = np.mean(np.array(emb_list), axis=0)

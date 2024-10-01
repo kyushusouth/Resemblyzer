@@ -10,6 +10,7 @@ from resemblyzer import VoiceEncoder, preprocess_wav
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     encoder = VoiceEncoder(device=device)
+    encoder.eval()
 
     df_path = Path("~/dataset/lip/data_split.csv").expanduser()
     audio_dir = Path("~/dataset/lip/wav").expanduser()
@@ -27,7 +28,8 @@ def main():
         for row in data.iterrows():
             audio_path = audio_dir / speaker / f'{row[1]["filename"]}.wav'
             wav = preprocess_wav(str(audio_path))
-            emb = encoder.embed_utterance(wav)
+            with torch.no_grad():
+                emb = encoder.embed_utterance(wav)
             emb_list.append(emb)
 
         emb = np.mean(np.array(emb_list), axis=0)

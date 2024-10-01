@@ -19,6 +19,7 @@ def main():
     args = get_arg()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     encoder = VoiceEncoder(device=device)
+    encoder.eval()
 
     data_path_lst = args.inp_dir.glob("**/*.wav")
     results = []
@@ -34,8 +35,9 @@ def main():
         wav = preprocess_wav(str(data_path))
         wav_gt = preprocess_wav(str(data_path_gt))
 
-        emb = encoder.embed_utterance(wav)
-        emb_gt = encoder.embed_utterance(wav_gt)
+        with torch.no_grad():
+            emb = encoder.embed_utterance(wav)
+            emb_gt = encoder.embed_utterance(wav_gt)
         cossim = cosine_similarity(emb.reshape(1, -1), emb_gt.reshape(1, -1))
 
         results.append([cossim, date, speaker, filename, kind])
